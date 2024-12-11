@@ -18,7 +18,7 @@ namespace Lagrange.Laana.Common
             {
                 client.DefaultRequestHeaders.Add(key, value);
             }
-            
+
             var response = method switch
             {
                 PrepareCacheByUrlPing.Types.Method.Get => await client.GetAsync(url),
@@ -37,7 +37,7 @@ namespace Lagrange.Laana.Common
 
             return cacheId;
         }
-        
+
         public async Task<string> PrepareCacheFromBytes(byte[] data)
         {
             string cacheId = $"from-data-{data.CalculateMd5()}";
@@ -49,19 +49,19 @@ namespace Lagrange.Laana.Common
             await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), data);
             return cacheId;
         }
-        
+
         public async Task<string> ResolveLaanaFileToCacheId(LaanaFile laanaFile)
         {
             return laanaFile.UriCase switch
             {
                 LaanaFile.UriOneofCase.Url => await PrepareCacheFromUrl(
-                    laanaFile.Url, [], PrepareCacheByUrlPing.Types.Method.Get), 
+                    laanaFile.Url, [], PrepareCacheByUrlPing.Types.Method.Get),
                 LaanaFile.UriOneofCase.Raw => await PrepareCacheFromBytes(laanaFile.Raw.ToByteArray()),
                 LaanaFile.UriOneofCase.CacheId => laanaFile.CacheId,
                 _ => throw new Exception("Unsupported URI type.")
             };
         }
-        
+
         public void DestroyCache(string cacheId)
         {
             if (File.Exists(Path.Combine(cachePath, cacheId)))
@@ -69,7 +69,7 @@ namespace Lagrange.Laana.Common
                 File.Delete(Path.Combine(cachePath, cacheId));
             }
         }
-        
+
         public string ResolveCachePath(string cacheId)
         {
             return Path.Combine(cachePath, cacheId);

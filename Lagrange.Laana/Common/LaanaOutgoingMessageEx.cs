@@ -49,7 +49,7 @@ namespace Lagrange.Laana.Common
 
             return builder.Build();
         }
-        
+
         private static void LaanaBubble(this MessageBuilder builder, LaanaMessage.Types.Bubble bubble)
         {
             if (bubble.RepliedMsgSeq != 0)
@@ -72,14 +72,14 @@ namespace Lagrange.Laana.Common
                         break;
                     case LaanaMessage.Types.Bubble.Types.Segment.ContentOneofCase.Image:
                         // TODO: Resolve Laana File
-                        break; 
+                        break;
                     case LaanaMessage.Types.Bubble.Types.Segment.ContentOneofCase.None:
                     default:
                         throw new Exception("Invalid segment content type.");
                 }
             }
         }
-        
+
         private static void LaanaMarketFace(this MessageBuilder builder, LaanaMessage.Types.MarketFace marketFace)
         {
             builder.MarketFace(

@@ -1,9 +1,10 @@
-﻿namespace Lagrange.Laana;
-
-internal abstract class Program
+﻿namespace Lagrange.Laana
 {
-    public static void Main(string[] args)
+    internal abstract class Program
     {
-        Console.WriteLine("Hello, Laana World!");
+        public static void Main(string[] args)
+        {
+            Console.WriteLine("Hello, Laana World!");
+        }
     }
 }
