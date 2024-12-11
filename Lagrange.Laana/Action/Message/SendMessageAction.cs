@@ -10,7 +10,7 @@ using LiteDB;
 namespace Lagrange.Laana.Action.Message
 {
     [ActionHandlerOf(LaanaActionPing.PingOneofCase.SendMessage)]
-    public class SendMessageAction(IOutgoingMessageConverter converter, ILiteDatabase db) : IAction<SendMessagePing, SendMessagePong>
+    public sealed class SendMessageAction(IOutgoingMessageConverter converter, ILiteDatabase db) : IAction<SendMessagePing, SendMessagePong>
     {
         public async Task<SendMessagePong> Handle(BotContext bot, SendMessagePing ping)
         {
