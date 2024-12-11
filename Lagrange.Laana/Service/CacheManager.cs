@@ -1,8 +1,23 @@
 ﻿using Laana;
+using Lagrange.Laana.Common;
 
-namespace Lagrange.Laana.Common
+namespace Lagrange.Laana.Service
 {
-    public sealed class CacheManager(string cachePath)
+    public interface ICacheManager
+    {
+        Task<string> PrepareCacheFromUrl(
+            string url, Dictionary<string, string> headers, PrepareCacheByUrlPing.Types.Method method);
+        
+        Task<string> PrepareCacheFromBytes(byte[] data);
+        
+        Task<byte[]> ResolveIncomingLaanaFile(LaanaFile laanaFile);
+        
+        void DestroyCache(string cacheId);
+        
+        string ResolveCachePath(string cacheId);
+    }
+    
+    public sealed class CacheManager(string cachePath) : ICacheManager
     {
         public async Task<string> PrepareCacheFromUrl(
             string url, Dictionary<string, string> headers, PrepareCacheByUrlPing.Types.Method method)
