@@ -2,11 +2,16 @@
 using Lagrange.Core.Message;
 using Lagrange.Core.Message.Entity;
 
-namespace Lagrange.Laana.Common
+namespace Lagrange.Laana.Service
 {
-    public static class LaanaOutgoingMessageEx
+    public interface IOutgoingMessageConverter
     {
-        public static MessageChain ToMessageChain(this LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer)
+        MessageChain ToMessageChain(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer);
+    }
+    
+    public sealed class OutgoingMessageConverter(ICacheManager cacheManager) : IOutgoingMessageConverter
+    {
+        public MessageChain ToMessageChain(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer)
         {
             var builder = targetPeer.Type switch
             {
@@ -18,7 +23,7 @@ namespace Lagrange.Laana.Common
             switch (outgoingMessage.ContentCase)
             {
                 case LaanaOutgoingMessage.ContentOneofCase.Bubble:
-                    builder.LaanaBubble(outgoingMessage.Bubble);
+                    AddLaanaBubble(builder, outgoingMessage.Bubble);
                     break;
                 case LaanaOutgoingMessage.ContentOneofCase.File:
                     throw new Exception("Use UploadXxxFile instead.");
@@ -28,7 +33,7 @@ namespace Lagrange.Laana.Common
                     // TODO: Resolve Laana File
                     break;
                 case LaanaOutgoingMessage.ContentOneofCase.MarketFace:
-                    builder.LaanaMarketFace(outgoingMessage.MarketFace);
+                    AddLaanaMarketFace(builder, outgoingMessage.MarketFace);
                     break;
                 case LaanaOutgoingMessage.ContentOneofCase.XmlMessage:
                     builder.Xml(outgoingMessage.XmlMessage.Xml);
@@ -50,7 +55,7 @@ namespace Lagrange.Laana.Common
             return builder.Build();
         }
 
-        private static void LaanaBubble(this MessageBuilder builder, LaanaMessage.Types.Bubble bubble)
+        private void AddLaanaBubble(MessageBuilder builder, LaanaMessage.Types.Bubble bubble)
         {
             if (bubble.RepliedMsgSeq != 0)
             {
@@ -80,7 +85,7 @@ namespace Lagrange.Laana.Common
             }
         }
 
-        private static void LaanaMarketFace(this MessageBuilder builder, LaanaMessage.Types.MarketFace marketFace)
+        private void AddLaanaMarketFace(MessageBuilder builder, LaanaMessage.Types.MarketFace marketFace)
         {
             builder.MarketFace(
                 marketFace.FaceId,
