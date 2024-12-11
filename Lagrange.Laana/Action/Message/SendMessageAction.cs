@@ -2,15 +2,16 @@
 using Lagrange.Core;
 using Lagrange.Core.Common.Interface.Api;
 using Lagrange.Laana.Common;
+using Lagrange.Laana.Service;
 
 namespace Lagrange.Laana.Action.Message
 {
     [ActionHandlerOf(LaanaActionPing.PingOneofCase.SendMessage)]
-    public class SendMessageAction : IAction<SendMessagePing, SendMessagePong>
+    public class SendMessageAction(IOutgoingMessageConverter converter) : IAction<SendMessagePing, SendMessagePong>
     {
         public async Task<SendMessagePong> Handle(BotContext bot, SendMessagePing ping)
         {
-            var messageResult = await bot.SendMessage(ping.Message.ToMessageChain(ping.TargetPeer));
+            var messageResult = await bot.SendMessage(await converter.Convert(ping.Message, ping.TargetPeer));
             if (messageResult.Result != 0)
             {
                 throw new Exception($"Failed to send message. Error code: {messageResult.Result}");

@@ -6,12 +6,12 @@ namespace Lagrange.Laana.Service
 {
     public interface IOutgoingMessageConverter
     {
-        MessageChain ToMessageChain(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer);
+        Task<MessageChain> Convert(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer);
     }
     
     public sealed class OutgoingMessageConverter(ICacheManager cacheManager) : IOutgoingMessageConverter
     {
-        public MessageChain ToMessageChain(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer)
+        public async Task<MessageChain> Convert(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer)
         {
             var builder = targetPeer.Type switch
             {
@@ -26,12 +26,20 @@ namespace Lagrange.Laana.Service
                     AddLaanaBubble(builder, outgoingMessage.Bubble);
                     break;
                 case LaanaOutgoingMessage.ContentOneofCase.File:
-                    throw new Exception("Use UploadXxxFile instead.");
-                case LaanaOutgoingMessage.ContentOneofCase.SingleImage:
-                case LaanaOutgoingMessage.ContentOneofCase.Video:
-                case LaanaOutgoingMessage.ContentOneofCase.Voice:
-                    // TODO: Resolve Laana File
+                    // TODO: Intercept -> UploadXxxFile
                     break;
+                case LaanaOutgoingMessage.ContentOneofCase.SingleImage:
+                    AddLaanaSingleImage(builder, outgoingMessage.SingleImage);
+                    break;
+                
+                // TODO: calculate duration
+                case LaanaOutgoingMessage.ContentOneofCase.Video:
+                    builder.Video(await cacheManager.ResolveIncomingLaanaFile(outgoingMessage.Video));
+                    break;
+                case LaanaOutgoingMessage.ContentOneofCase.Voice:
+                    builder.Record(await cacheManager.ResolveIncomingLaanaFile(outgoingMessage.Voice));
+                    break;
+                
                 case LaanaOutgoingMessage.ContentOneofCase.MarketFace:
                     AddLaanaMarketFace(builder, outgoingMessage.MarketFace);
                     break;
@@ -39,8 +47,9 @@ namespace Lagrange.Laana.Service
                     builder.Xml(outgoingMessage.XmlMessage.Xml);
                     break;
                 case LaanaOutgoingMessage.ContentOneofCase.ForwardedMessage:
-                    // TODO: Intercept that before calling this method. On done, delete this case.
+                    // TODO: Intercept -> Send "Fake" ForwardedMessage
                     break;
+                
                 case LaanaOutgoingMessage.ContentOneofCase.ArkMessage:
                 case LaanaOutgoingMessage.ContentOneofCase.LinkCard:
                 case LaanaOutgoingMessage.ContentOneofCase.ContactCard:
@@ -55,7 +64,7 @@ namespace Lagrange.Laana.Service
             return builder.Build();
         }
 
-        private void AddLaanaBubble(MessageBuilder builder, LaanaMessage.Types.Bubble bubble)
+        private async void AddLaanaBubble(MessageBuilder builder, LaanaMessage.Types.Bubble bubble)
         {
             if (bubble.RepliedMsgSeq != 0)
             {
@@ -76,13 +85,21 @@ namespace Lagrange.Laana.Service
                         builder.Mention(uint.Parse(segment.At.Uin), segment.At.Name);
                         break;
                     case LaanaMessage.Types.Bubble.Types.Segment.ContentOneofCase.Image:
-                        // TODO: Resolve Laana File
+                        builder.Image(await cacheManager.ResolveIncomingLaanaFile(segment.Image));
                         break;
                     case LaanaMessage.Types.Bubble.Types.Segment.ContentOneofCase.None:
                     default:
                         throw new Exception("Invalid segment content type.");
                 }
             }
+        }
+
+        private async void AddLaanaSingleImage(MessageBuilder builder, LaanaMessage.Types.SingleImage singleImage)
+        {
+            builder.Add(new ImageEntity(await cacheManager.ResolveIncomingLaanaFile(singleImage.Image))
+            {
+                Summary = singleImage.DisplayText
+            });
         }
 
         private void AddLaanaMarketFace(MessageBuilder builder, LaanaMessage.Types.MarketFace marketFace)
