@@ -13,6 +13,52 @@ namespace Lagrange.Laana.Common
                 return Path.Combine(cachePath, cacheId);
             }
 
+            byte[] content = await DownloadFile(url, headers, method);
+            await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), content);
+
+            return cacheId;
+        }
+
+        public async Task<string> PrepareCacheFromBytes(byte[] data)
+        {
+            string cacheId = $"from-data-{data.CalculateMd5()}";
+            if (File.Exists(Path.Combine(cachePath, cacheId)))
+            {
+                return cacheId;
+            }
+
+            await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), data);
+            return cacheId;
+        }
+
+        public async Task<byte[]> ResolveIncomingLaanaFile(LaanaFile laanaFile)
+        {
+            return laanaFile.UriCase switch
+            {
+                LaanaFile.UriOneofCase.Url => await DownloadFile(
+                    laanaFile.Url, [], PrepareCacheByUrlPing.Types.Method.Get),
+                LaanaFile.UriOneofCase.Raw => laanaFile.Raw.ToByteArray(),
+                LaanaFile.UriOneofCase.CacheId => await File.ReadAllBytesAsync(ResolveCachePath(laanaFile.CacheId)),
+                _ => throw new Exception("Unsupported URI type.")
+            };
+        }
+
+        public void DestroyCache(string cacheId)
+        {
+            if (File.Exists(Path.Combine(cachePath, cacheId)))
+            {
+                File.Delete(Path.Combine(cachePath, cacheId));
+            }
+        }
+
+        public string ResolveCachePath(string cacheId)
+        {
+            return Path.Combine(cachePath, cacheId);
+        }
+
+        private static async Task<byte[]> DownloadFile(string url, Dictionary<string, string> headers,
+            PrepareCacheByUrlPing.Types.Method method)
+        {
             using var client = new HttpClient();
             foreach (var (key, value) in headers)
             {
@@ -32,47 +78,7 @@ namespace Lagrange.Laana.Common
                 throw new Exception($"Failed to download {url}");
             }
 
-            byte[] content = await response.Content.ReadAsByteArrayAsync();
-            await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), content);
-
-            return cacheId;
-        }
-
-        public async Task<string> PrepareCacheFromBytes(byte[] data)
-        {
-            string cacheId = $"from-data-{data.CalculateMd5()}";
-            if (File.Exists(Path.Combine(cachePath, cacheId)))
-            {
-                return cacheId;
-            }
-
-            await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), data);
-            return cacheId;
-        }
-
-        public async Task<string> ResolveLaanaFileToCacheId(LaanaFile laanaFile)
-        {
-            return laanaFile.UriCase switch
-            {
-                LaanaFile.UriOneofCase.Url => await PrepareCacheFromUrl(
-                    laanaFile.Url, [], PrepareCacheByUrlPing.Types.Method.Get),
-                LaanaFile.UriOneofCase.Raw => await PrepareCacheFromBytes(laanaFile.Raw.ToByteArray()),
-                LaanaFile.UriOneofCase.CacheId => laanaFile.CacheId,
-                _ => throw new Exception("Unsupported URI type.")
-            };
-        }
-
-        public void DestroyCache(string cacheId)
-        {
-            if (File.Exists(Path.Combine(cachePath, cacheId)))
-            {
-                File.Delete(Path.Combine(cachePath, cacheId));
-            }
-        }
-
-        public string ResolveCachePath(string cacheId)
-        {
-            return Path.Combine(cachePath, cacheId);
+            return await response.Content.ReadAsByteArrayAsync();
         }
     }
 }
