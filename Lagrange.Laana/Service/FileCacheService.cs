@@ -7,29 +7,31 @@ namespace Lagrange.Laana.Service
     {
         Task<string> PrepareCacheFromUrl(
             string url, Dictionary<string, string> headers, PrepareCacheByUrlPing.Types.Method method);
-        
+
         Task<string> PrepareCacheFromBytes(byte[] data);
-        
+
         Task<byte[]> ResolveIncomingLaanaFile(LaanaFile laanaFile);
-        
+
         void DestroyCache(string cacheId);
-        
+
         string ResolveCachePath(string cacheId);
     }
-    
+
     public sealed class FileCacheService(string cachePath) : IFileCacheService
     {
+        private string CacheRootPath { get; } = Path.GetFullPath(cachePath);
+
         public async Task<string> PrepareCacheFromUrl(
             string url, Dictionary<string, string> headers, PrepareCacheByUrlPing.Types.Method method)
         {
             string cacheId = $"from-url-{url.CalculateMd5()}";
-            if (File.Exists(Path.Combine(cachePath, cacheId)))
+            if (File.Exists(ResolveCachePath(cacheId)))
             {
-                return Path.Combine(cachePath, cacheId);
+                return ResolveCachePath(cacheId);
             }
 
             byte[] content = await DownloadFile(url, headers, method);
-            await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), content);
+            await File.WriteAllBytesAsync(ResolveCachePath(cacheId), content);
 
             return cacheId;
         }
@@ -37,12 +39,12 @@ namespace Lagrange.Laana.Service
         public async Task<string> PrepareCacheFromBytes(byte[] data)
         {
             string cacheId = $"from-data-{data.CalculateMd5()}";
-            if (File.Exists(Path.Combine(cachePath, cacheId)))
+            if (File.Exists(ResolveCachePath(cacheId)))
             {
                 return cacheId;
             }
 
-            await File.WriteAllBytesAsync(Path.Combine(cachePath, cacheId), data);
+            await File.WriteAllBytesAsync(ResolveCachePath(cacheId), data);
             return cacheId;
         }
 
@@ -60,15 +62,21 @@ namespace Lagrange.Laana.Service
 
         public void DestroyCache(string cacheId)
         {
-            if (File.Exists(Path.Combine(cachePath, cacheId)))
+            if (File.Exists(ResolveCachePath(cacheId)))
             {
-                File.Delete(Path.Combine(cachePath, cacheId));
+                File.Delete(ResolveCachePath(cacheId));
             }
         }
 
         public string ResolveCachePath(string cacheId)
         {
-            return Path.Combine(cachePath, cacheId);
+            string resolvedCachePath = Path.GetFullPath(cachePath, CacheRootPath);
+            if (!resolvedCachePath.StartsWith(CacheRootPath + Path.DirectorySeparatorChar))
+            {
+                throw new Exception("Invalid cache ID.");
+            }
+
+            return resolvedCachePath;
         }
 
         private static async Task<byte[]> DownloadFile(string url, Dictionary<string, string> headers,
