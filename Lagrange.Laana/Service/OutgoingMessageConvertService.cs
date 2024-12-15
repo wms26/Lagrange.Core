@@ -4,12 +4,12 @@ using Lagrange.Core.Message.Entity;
 
 namespace Lagrange.Laana.Service
 {
-    public interface IOutgoingMessageConverter
+    public interface IOutgoingMessageConvertService
     {
         Task<MessageChain> Convert(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer);
     }
     
-    public sealed class OutgoingMessageConverter(ICacheManager cacheManager) : IOutgoingMessageConverter
+    public sealed class OutgoingMessageConvertService(IFileCacheService fileCacheService) : IOutgoingMessageConvertService
     {
         public async Task<MessageChain> Convert(LaanaOutgoingMessage outgoingMessage, LaanaPeer targetPeer)
         {
@@ -34,10 +34,10 @@ namespace Lagrange.Laana.Service
                 
                 // TODO: calculate duration
                 case LaanaOutgoingMessage.ContentOneofCase.Video:
-                    builder.Video(await cacheManager.ResolveIncomingLaanaFile(outgoingMessage.Video));
+                    builder.Video(await fileCacheService.ResolveIncomingLaanaFile(outgoingMessage.Video));
                     break;
                 case LaanaOutgoingMessage.ContentOneofCase.Voice:
-                    builder.Record(await cacheManager.ResolveIncomingLaanaFile(outgoingMessage.Voice));
+                    builder.Record(await fileCacheService.ResolveIncomingLaanaFile(outgoingMessage.Voice));
                     break;
                 
                 case LaanaOutgoingMessage.ContentOneofCase.MarketFace:
@@ -85,7 +85,7 @@ namespace Lagrange.Laana.Service
                         builder.Mention(uint.Parse(segment.At.Uin), segment.At.Name);
                         break;
                     case LaanaMessage.Types.Bubble.Types.Segment.ContentOneofCase.Image:
-                        builder.Image(await cacheManager.ResolveIncomingLaanaFile(segment.Image));
+                        builder.Image(await fileCacheService.ResolveIncomingLaanaFile(segment.Image));
                         break;
                     case LaanaMessage.Types.Bubble.Types.Segment.ContentOneofCase.None:
                     default:
@@ -96,7 +96,7 @@ namespace Lagrange.Laana.Service
 
         private async void AddLaanaSingleImage(MessageBuilder builder, LaanaMessage.Types.SingleImage singleImage)
         {
-            builder.Add(new ImageEntity(await cacheManager.ResolveIncomingLaanaFile(singleImage.Image))
+            builder.Add(new ImageEntity(await fileCacheService.ResolveIncomingLaanaFile(singleImage.Image))
             {
                 Summary = singleImage.DisplayText
             });

@@ -3,7 +3,7 @@ using Lagrange.Laana.Common;
 
 namespace Lagrange.Laana.Service
 {
-    public interface ICacheManager
+    public interface IFileCacheService
     {
         Task<string> PrepareCacheFromUrl(
             string url, Dictionary<string, string> headers, PrepareCacheByUrlPing.Types.Method method);
@@ -17,7 +17,7 @@ namespace Lagrange.Laana.Service
         string ResolveCachePath(string cacheId);
     }
     
-    public sealed class CacheManager(string cachePath) : ICacheManager
+    public sealed class FileCacheService(string cachePath) : IFileCacheService
     {
         public async Task<string> PrepareCacheFromUrl(
             string url, Dictionary<string, string> headers, PrepareCacheByUrlPing.Types.Method method)

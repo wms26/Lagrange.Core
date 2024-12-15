@@ -10,11 +10,11 @@ using LiteDB;
 namespace Lagrange.Laana.Action.Message
 {
     [ActionHandlerOf(LaanaActionPing.PingOneofCase.SendMessage)]
-    public sealed class SendMessageAction(IOutgoingMessageConverter converter, ILiteDatabase db) : IAction<SendMessagePing, SendMessagePong>
+    public sealed class SendMessageAction(IOutgoingMessageConvertService convertService, ILiteDatabase db) : IAction<SendMessagePing, SendMessagePong>
     {
         public async Task<SendMessagePong> Handle(BotContext bot, SendMessagePing ping)
         {
-            var messageResult = await bot.SendMessage(await converter.Convert(ping.Message, ping.TargetPeer));
+            var messageResult = await bot.SendMessage(await convertService.Convert(ping.Message, ping.TargetPeer));
             if (messageResult.Result != 0)
             {
                 throw new Exception($"Failed to send message. Error code: {messageResult.Result}");
