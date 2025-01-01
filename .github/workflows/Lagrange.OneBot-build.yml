@@ -1,7 +1,6 @@
 name: Lagrange.OneBot Build
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - master
